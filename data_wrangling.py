@@ -73,6 +73,18 @@ def rfcd_nan_managing(dfOrig):
     dfOrig.set_index(dfOrig["Grant.Application.ID"], inplace=True)
     dfOrig["RFCD.Code.1"].fillna(a["RFCD.Code.1"], inplace=True)
 
+def seo_nan_managing(dfOrig):
+    # get the most common RFCD code for every researcher
+    res_table = get_tables()
+    # create intermediate df with researchers and their most common research field
+    a = res_table.groupby(["Person.ID.1", "SEO.Code.1"])["Grant.Application.ID"].count().reset_index(name="count").sort_values(["Person.ID.1","count"],ascending=[True, False]).drop_duplicates(["Person.ID.1"]).reset_index(drop=True)
+    # add Grant.Application.ID to the table and make it the index
+    a = pd.merge(dfOrig[["Grant.Application.ID", "Person.ID.1"]], a, how="left")
+    a.set_index(a["Grant.Application.ID"], inplace=True)
+    dfOrig.set_index(dfOrig["Grant.Application.ID"], inplace=True)
+    dfOrig["SEO.Code.1"].fillna(a["SEO.Code.1"], inplace=True)
+
+
 
 def munge_data(df_orig):
     df = df_orig.copy()
@@ -111,6 +123,7 @@ def munge_data(df_orig):
     grant_cats = pd.DataFrame(grant_cats)
 
     rfcd_nan_managing(pd.read_csv('data/unimelb_training.csv'))
+    seo_nan_managing(pd.read_csv('data/unimelb_training.csv'))
 
     # Fill the nan RFCD % with 100% if it's the main one
     mask = (df["RFCD.Percentage.1"].isnull() & ~df["RFCD.Code.1"].isnull())
@@ -119,6 +132,11 @@ def munge_data(df_orig):
     for i in range(1, 6):
       df['RFCD.Percentage.' + str(i)].fillna(0, inplace=True)
 
+    mask = (df["SEO.Percentage.1"].isnull() & ~df["SEO.Code.1"].isnull())
+    column_name ="SEO.Percentage.1"
+    df.loc[mask, column_name] = 100
+    for i in range(1, 6):
+      df['SEO.Percentage.' + str(i)].fillna(0, inplace=True)
 
     # imputing missing percentages for RFCD.Percentage columns with the mean
     # df['RFCD.Percentage.1'].fillna(df['RFCD.Percentage.1'].mean(), inplace=True)
