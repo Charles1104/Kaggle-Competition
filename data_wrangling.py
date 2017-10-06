@@ -62,23 +62,11 @@ def combine_columns(dfOrig, codeName='SEO.Code.', prcName='SEO.Percentage.', cod
     return currDummy
 
 
-def rfcd_nan_managing(dfOrig):
-    # get the most common RFCD code for every researcher
-    res_table = get_tables()
-    # create intermediate df with researchers and their most common research field
-    a = res_table.groupby(["Person.ID.1", "RFCD.Code.1"])["Grant.Application.ID"].count().reset_index(name="count").sort_values(["Person.ID.1","count"],ascending=[True, False]).drop_duplicates(["Person.ID.1"]).reset_index(drop=True)
-    # add Grant.Application.ID to the table and make it the index
-    a = pd.merge(dfOrig[["Grant.Application.ID", "Person.ID.1"]], a, how="left")
-    a.set_index(a["Grant.Application.ID"], inplace=True)
-    dfOrig.set_index(dfOrig["Grant.Application.ID"], inplace=True)
-    dfOrig["RFCD.Code.1"].fillna(a["RFCD.Code.1"], inplace=True)
-
-
 def munge_data(df_orig):
     df = df_orig.copy()
 
     # Remove the Person-ID this information is useless
-    # del df['Person.ID.1']
+    del df['Person.ID.1']
 
     # Create oldest DF where applications are grouped and only year of birth column is kept with its min value for each team
     oldest = pd.DataFrame(df.groupby('Grant.Application.ID')['Year.of.Birth.1'].min())
@@ -110,22 +98,13 @@ def munge_data(df_orig):
     grant_cats = grant_cats.groupby('Grant.Application.ID')[grant_cats.columns].min()
     grant_cats = pd.DataFrame(grant_cats)
 
-    rfcd_nan_managing(pd.read_csv('data/unimelb_training.csv'))
-
-    # Fill the nan RFCD % with 100% if it's the main one
-    mask = (df["RFCD.Percentage.1"].isnull() & ~df["RFCD.Code.1"].isnull())
-    column_name ="RFCD.Percentage.1"
-    df.loc[mask, column_name] = 100
-    for i in range(1, 6):
-      df['RFCD.Percentage.' + str(i)].fillna(0, inplace=True)
-
 
     # imputing missing percentages for RFCD.Percentage columns with the mean
-    # df['RFCD.Percentage.1'].fillna(df['RFCD.Percentage.1'].mean(), inplace=True)
-    # df['RFCD.Percentage.2'].fillna(df['RFCD.Percentage.2'].mean(), inplace=True)
-    # df['RFCD.Percentage.3'].fillna(df['RFCD.Percentage.3'].mean(), inplace=True)
-    # df['RFCD.Percentage.4'].fillna(df['RFCD.Percentage.4'].mean(), inplace=True)
-    # df['RFCD.Percentage.5'].fillna(df['RFCD.Percentage.5'].mean(), inplace=True)
+    df['RFCD.Percentage.1'].fillna(df['RFCD.Percentage.1'].mean(), inplace=True)
+    df['RFCD.Percentage.2'].fillna(df['RFCD.Percentage.2'].mean(), inplace=True)
+    df['RFCD.Percentage.3'].fillna(df['RFCD.Percentage.3'].mean(), inplace=True)
+    df['RFCD.Percentage.4'].fillna(df['RFCD.Percentage.4'].mean(), inplace=True)
+    df['RFCD.Percentage.5'].fillna(df['RFCD.Percentage.5'].mean(), inplace=True)
 
     # doing the same as above with SEO.Percentage columns
     df['SEO.Percentage.1'].fillna(df['SEO.Percentage.1'].mean(), inplace=True)
@@ -184,7 +163,6 @@ def munge_data(df_orig):
     # .timetuple() generates a tuple from the strptime with all the time information
     # time.mktime generates a single time value from the tuple
 
-    del df['Person.ID.1']
     del finalDf['Grant.Application.ID_y']
     del finalDf['Grant.Application.ID_x']
 
