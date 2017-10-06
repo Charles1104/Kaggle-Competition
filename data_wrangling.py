@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import datetime
+import data_wrangling2 as dw2
 
 
 def get_tables(filename='data/unimelb_training.csv'):
@@ -30,7 +31,7 @@ def combine_columns(dfOrig, codeName='SEO.Code.', prcName='SEO.Percentage.', cod
     # get a copy of the original dataframe
     df = dfOrig.copy()
     # create a dataframe cleanDF that will get five columns for the SEO code
-    cleanDf = df[['{}{}'.format(codeName, i) for i in range(1, codeRange+1)]].fillna(990000) // 10000
+    cleanDf = df[['{}{}'.format(codeName, i) for i in range(1, codeRange + 1)]].fillna(990000) // 10000
     cleanDf[index] = df[index]
     dummyDf = []
     for i in range(1, codeRange + 1):
@@ -61,11 +62,23 @@ def combine_columns(dfOrig, codeName='SEO.Code.', prcName='SEO.Percentage.', cod
     return currDummy
 
 
+def rfcd_nan_managing(dfOrig):
+    # get the most common RFCD code for every researcher
+    res_table = get_tables()
+    # create intermediate df with researchers and their most common research field
+    a = res_table.groupby(["Person.ID.1", "RFCD.Code.1"])["Grant.Application.ID"].count().reset_index(name="count").sort_values(["Person.ID.1","count"],ascending=[True, False]).drop_duplicates(["Person.ID.1"]).reset_index(drop=True)
+    # add Grant.Application.ID to the table and make it the index
+    a = pd.merge(dfOrig[["Grant.Application.ID", "Person.ID.1"]], a, how="left")
+    a.set_index(a["Grant.Application.ID"], inplace=True)
+    dfOrig.set_index(dfOrig["Grant.Application.ID"], inplace=True)
+    dfOrig["RFCD.Code.1"].fillna(a["RFCD.Code.1"], inplace=True)
+
+
 def munge_data(df_orig):
     df = df_orig.copy()
 
     # Remove the Person-ID this information is useless
-    del df['Person.ID.1']
+    # del df['Person.ID.1']
 
     # Create oldest DF where applications are grouped and only year of birth column is kept with its min value for each team
     oldest = pd.DataFrame(df.groupby('Grant.Application.ID')['Year.of.Birth.1'].min())
@@ -97,12 +110,22 @@ def munge_data(df_orig):
     grant_cats = grant_cats.groupby('Grant.Application.ID')[grant_cats.columns].min()
     grant_cats = pd.DataFrame(grant_cats)
 
+    rfcd_nan_managing(pd.read_csv('data/unimelb_training.csv'))
+
+    # Fill the nan RFCD % with 100% if it's the main one
+    mask = (df["RFCD.Percentage.1"].isnull() & ~df["RFCD.Code.1"].isnull())
+    column_name ="RFCD.Percentage.1"
+    df.loc[mask, column_name] = 100
+    for i in range(1, 6):
+      df['RFCD.Percentage.' + str(i)].fillna(0, inplace=True)
+
+
     # imputing missing percentages for RFCD.Percentage columns with the mean
-    df['RFCD.Percentage.1'].fillna(df['RFCD.Percentage.1'].mean(), inplace=True)
-    df['RFCD.Percentage.2'].fillna(df['RFCD.Percentage.2'].mean(), inplace=True)
-    df['RFCD.Percentage.3'].fillna(df['RFCD.Percentage.3'].mean(), inplace=True)
-    df['RFCD.Percentage.4'].fillna(df['RFCD.Percentage.4'].mean(), inplace=True)
-    df['RFCD.Percentage.5'].fillna(df['RFCD.Percentage.5'].mean(), inplace=True)
+    # df['RFCD.Percentage.1'].fillna(df['RFCD.Percentage.1'].mean(), inplace=True)
+    # df['RFCD.Percentage.2'].fillna(df['RFCD.Percentage.2'].mean(), inplace=True)
+    # df['RFCD.Percentage.3'].fillna(df['RFCD.Percentage.3'].mean(), inplace=True)
+    # df['RFCD.Percentage.4'].fillna(df['RFCD.Percentage.4'].mean(), inplace=True)
+    # df['RFCD.Percentage.5'].fillna(df['RFCD.Percentage.5'].mean(), inplace=True)
 
     # doing the same as above with SEO.Percentage columns
     df['SEO.Percentage.1'].fillna(df['SEO.Percentage.1'].mean(), inplace=True)
@@ -122,6 +145,13 @@ def munge_data(df_orig):
     # set the index to the 'Grant.Application.ID' - very important that all DFs have the same index in order to merge
     df.set_index('Grant.Application.ID', inplace=True)
 
+    # import columns from data_wrangling2
+    total_pers = dw2.total_pers()
+    count_countries = dw2.count_countries()
+    avg_age = dw2.avg_age()
+    years_uni = dw2.years_uni()
+    total_phd = dw2.total_phd()
+
     # Merge all the DF created
     finalDf = pd.merge(df, oldest, left_index=True, right_index=True)
     finalDf = pd.merge(finalDf, numRole, left_index=True, right_index=True)
@@ -130,6 +160,11 @@ def munge_data(df_orig):
     finalDf = pd.merge(finalDf, grant_cats, left_index=True, right_index=True)
     finalDf = pd.merge(finalDf, rfcds, left_index=True, right_index=True)
     finalDf = pd.merge(finalDf, seos, left_index=True, right_index=True)
+    finalDf = pd.merge(finalDf, total_pers, left_index=True, right_index=True)
+    finalDf = pd.merge(finalDf, count_countries, left_index=True, right_index=True)
+    finalDf = pd.merge(finalDf, avg_age, left_index=True, right_index=True)
+    finalDf = pd.merge(finalDf, years_uni, left_index=True, right_index=True)
+    finalDf = pd.merge(finalDf, total_phd, left_index=True, right_index=True)
 
     # imputing ages with median
     finalDf['Year.of.Birth.1'] = finalDf['Year.of.Birth.1'].fillna(finalDf['Year.of.Birth.1'].median())
@@ -149,6 +184,7 @@ def munge_data(df_orig):
     # .timetuple() generates a tuple from the strptime with all the time information
     # time.mktime generates a single time value from the tuple
 
+    del df['Person.ID.1']
     del finalDf['Grant.Application.ID_y']
     del finalDf['Grant.Application.ID_x']
 
