@@ -1,7 +1,7 @@
 # Kaggle Competition - Grant Application
 
 Inline-style:
-![alt text](https://www.cdc.gov/grants/00_flexslider/images-flexslider-700x540/how-to-apply-slide700x540.png"Logo Title Text 1")
+![alt text](https://www.cdc.gov/grants/00_flexslider/images-flexslider-700x540/how-to-apply-slide700x540.png)
 
 ## Short summary
 
