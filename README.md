@@ -1,6 +1,6 @@
 # Kaggle Competition - Grant Application
 
-![alt text](https://www.cdc.gov/grants/00_flexslider/images-flexslider-700x540/how-to-apply-slide700x540.png | width=100)
+![alt text](https://www.cdc.gov/grants/00_flexslider/images-flexslider-700x540/how-to-apply-slide700x540.png)
 
 ## Short summary
 
@@ -14,5 +14,12 @@ I started by splitting these blocks and creating a new dataframe with one line p
 
 I then started to explore each feature (column) and compiled new column from the existing ones. For non-numerical variables, I either got dummies out of it or created categorical variables.
 
-Once I got a proper dataset with valuable columns (close to 100 features in the end), I then applied a random forest model to it. The result was pretty good with a AUC scoring of 94%.
+Once I got a proper dataset with valuable columns (close to 100 features in the end), I then applied a random forest model to it. The result was good with a AUC scoring of 94%.
+
+## Files details
+
+- data folder: datasets used
+- data_wrangling.py and data_wrangling2.py: are the python code for cleaning the data set. Running data_wrangling.py returns a new dataframe that will be used for the machine learning.
+- Machine Learning.ipynb: this notebook contains our machine learning code (random forest with scoring)
+- other files: drafts notebooks used during first exploration of the data
 
